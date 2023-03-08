@@ -1,17 +1,14 @@
-package websocket
+package tcp
 
 import (
 	"errors"
 	"log"
 	"net"
-	"net/url"
 	"os"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/gobwas/ws"
-	"github.com/gobwas/ws/wsutil"
 	"github.com/joeyscat/qim"
 	"go.uber.org/zap"
 )
@@ -28,7 +25,7 @@ type Client struct {
 	once    sync.Once
 	id      string
 	name    string
-	conn    net.Conn
+	conn    qim.Conn
 	state   int32
 	options ClientOptions
 	meta    map[string]string
@@ -51,10 +48,10 @@ func NewClientWithProps(id, name string, meta map[string]string, opts ClientOpti
 	var logger *zap.Logger
 	if os.Getenv("DEBUG") == "true" {
 		logger, err = zap.NewDevelopment(zap.Fields(
-			zap.String("module", "websocket.client"), zap.String("id", id)))
+			zap.String("module", "tcp.client"), zap.String("id", id)))
 	} else {
 		logger, err = zap.NewProduction(zap.Fields(
-			zap.String("module", "websocket.client"), zap.String("id", id)))
+			zap.String("module", "tcp.client"), zap.String("id", id)))
 	}
 	if err != nil {
 		log.Fatalln(err)
@@ -91,25 +88,21 @@ func (c *Client) Close() {
 		if c.conn == nil {
 			return
 		}
-		_ = wsutil.WriteClientMessage(c.conn, ws.OpClose, nil)
+		_ = c.conn.WriteFrame(qim.OpClose, nil)
+		_ = c.conn.Flush()
 
-		c.conn.Close()
+		_ = c.conn.Close()
 		atomic.CompareAndSwapInt32(&c.state, 1, 0)
 	})
 }
 
 // Connect implements qim.Client
 func (c *Client) Connect(addr string) error {
-	_, err := url.Parse(addr)
-	if err != nil {
-		return err
-	}
 	if !atomic.CompareAndSwapInt32(&c.state, 0, 1) {
 		return errors.New("invalid client state")
 	}
 
-	// 1. 拨号及握手
-	conn, err := c.DialAndHandshake(qim.DialerContext{
+	rawconn, err := c.DialAndHandshake(qim.DialerContext{
 		ID:      c.id,
 		Name:    c.name,
 		Address: addr,
@@ -119,14 +112,14 @@ func (c *Client) Connect(addr string) error {
 		atomic.CompareAndSwapInt32(&c.state, 1, 0)
 		return err
 	}
-	if conn == nil {
+	if rawconn == nil {
 		return errors.New("connection is nil")
 	}
-	c.conn = conn
+	c.conn = NewConn(rawconn)
 
 	if c.options.Heartbeat > 0 {
 		go func() {
-			err := c.heartbeatloop(conn)
+			err := c.heartbeatloop(rawconn)
 			if err != nil {
 				c.lg.Error("heartbeatloop stopped -- ", zap.Error(err))
 			}
@@ -137,7 +130,6 @@ func (c *Client) Connect(addr string) error {
 }
 
 // Read implements qim.Client
-// Read a frame, this function is not safety for concurrent
 func (c *Client) Read() (qim.Frame, error) {
 	if c.conn == nil {
 		return nil, errors.New("connecion is nil")
@@ -147,17 +139,15 @@ func (c *Client) Read() (qim.Frame, error) {
 		// 如果服务端正常返回pong，这里会一直刷新readDeadline
 		_ = c.conn.SetReadDeadline(time.Now().Add(c.options.Readwait))
 	}
-	frame, err := ws.ReadFrame(c.conn)
+	frame, err := c.conn.ReadFrame()
 	if err != nil {
 		return nil, err
 	}
-	if frame.Header.OpCode == ws.OpClose {
+	if frame.GetOpCode() == qim.OpClose {
 		return nil, errors.New("remote side close the channel")
 	}
 
-	return &Frame{
-		raw: frame,
-	}, nil
+	return frame, nil
 }
 
 // Send implements qim.Client
@@ -167,12 +157,11 @@ func (c *Client) Send(payload []byte) error {
 	}
 	c.Lock()
 	defer c.Unlock()
-	err := c.conn.SetWriteDeadline(time.Now().Add(c.options.Writewait))
+	err := c.conn.WriteFrame(qim.OpBinary, payload)
 	if err != nil {
 		return err
 	}
-	// 客户端消息需要使用MASK
-	return wsutil.WriteClientMessage(c.conn, ws.OpBinary, payload)
+	return c.conn.Flush()
 }
 
 // SetDialer implements qim.Client
@@ -192,13 +181,11 @@ func (c *Client) heartbeatloop(conn net.Conn) error {
 }
 
 func (c *Client) ping(conn net.Conn) error {
-	c.Lock()
-	defer c.Unlock()
-	// 通过SetWriteDeadline可以感知到发送端的异常
-	err := conn.SetWriteDeadline(time.Now().Add(c.options.Writewait))
+	c.lg.Debug("send ping to server")
+
+	err := c.conn.WriteFrame(qim.OpPing, nil)
 	if err != nil {
 		return err
 	}
-	c.lg.Debug("send ping to server")
-	return wsutil.WriteClientMessage(conn, ws.OpPing, nil)
+	return c.conn.Flush()
 }

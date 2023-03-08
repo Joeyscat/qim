@@ -9,6 +9,7 @@ import (
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/joeyscat/qim"
+	"github.com/joeyscat/qim/tcp"
 	"github.com/joeyscat/qim/websocket"
 	"go.uber.org/zap"
 )
@@ -26,7 +27,8 @@ func (c *ClientDemo) Start(userID, prorocol, addr string) {
 		cli = websocket.NewClient(userID, "client", websocket.ClientOptions{})
 		cli.SetDialer(&WebSocketDialer{})
 	} else if prorocol == "tcp" {
-		panic("unimplement")
+		cli = tcp.NewClient(userID, "client", tcp.ClientOptions{})
+		cli.SetDialer(&TCPDialer{lg: c.lg.With(zap.String("module", "tcp.dialer"))})
 	}
 
 	// 2. 建立连接
@@ -35,6 +37,7 @@ func (c *ClientDemo) Start(userID, prorocol, addr string) {
 		c.lg.Error(err.Error())
 		return
 	}
+	c.lg.Info("connect finished")
 	count := 10
 	go func() {
 		// 3. 发送消息，退出
@@ -95,11 +98,23 @@ func (*WebSocketDialer) DialAndHandshake(ctx qim.DialerContext) (net.Conn, error
 var _ qim.Dialer = (*WebSocketDialer)(nil)
 
 type TCPDialer struct {
+	lg *zap.Logger
 }
 
 // DialAndHandshake implements qim.Dialer
-func (*TCPDialer) DialAndHandshake(ctx qim.DialerContext) (net.Conn, error) {
-	panic("unimplemented")
+func (d *TCPDialer) DialAndHandshake(ctx qim.DialerContext) (net.Conn, error) {
+	d.lg.Info("start tcp dial", zap.String("address", ctx.Address))
+	conn, err := net.DialTimeout("tcp", ctx.Address, ctx.Timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tcp.WriteFrame(conn, qim.OpBinary, []byte(ctx.ID))
+	if err != nil {
+		return nil, err
+	}
+
+	return conn, nil
 }
 
 var _ qim.Dialer = (*TCPDialer)(nil)

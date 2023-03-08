@@ -8,6 +8,7 @@ import (
 
 	"github.com/joeyscat/qim"
 	"github.com/joeyscat/qim/naming"
+	"github.com/joeyscat/qim/tcp"
 	"github.com/joeyscat/qim/websocket"
 	"go.uber.org/zap"
 )
@@ -26,7 +27,7 @@ func (s *ServerDemo) Start(id, protocol, addr string) {
 	if protocol == "ws" {
 		srv = websocket.NewServer(addr, service)
 	} else if protocol == "tcp" {
-		log.Fatal("unimplement")
+		srv = tcp.NewServer(addr, service)
 	}
 
 	handler := &ServerHandler{
