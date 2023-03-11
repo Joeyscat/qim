@@ -2,6 +2,7 @@ package tcp
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -99,7 +100,7 @@ func (c *Client) Close() {
 // Connect implements qim.Client
 func (c *Client) Connect(addr string) error {
 	if !atomic.CompareAndSwapInt32(&c.state, 0, 1) {
-		return errors.New("invalid client state")
+		return fmt.Errorf("invalid client state: %d", c.state)
 	}
 
 	rawconn, err := c.DialAndHandshake(qim.DialerContext{

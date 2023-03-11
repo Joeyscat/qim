@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"net/url"
@@ -105,7 +106,7 @@ func (c *Client) Connect(addr string) error {
 		return err
 	}
 	if !atomic.CompareAndSwapInt32(&c.state, 0, 1) {
-		return errors.New("invalid client state")
+		return fmt.Errorf("invalid client state: %d", c.state)
 	}
 
 	// 1. 拨号及握手

@@ -3,7 +3,6 @@ package qim
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -66,7 +65,7 @@ type DefaultServer struct {
 func (s *DefaultServer) Push(channelID string, payload []byte) error {
 	ch, ok := s.ChannelMap.Get(channelID)
 	if !ok {
-		return errors.New("channel not found")
+		return fmt.Errorf("channel not found: %s", channelID)
 	}
 	return ch.Push(payload)
 }
