@@ -265,7 +265,7 @@ func connectToService(serviceName string) error {
 	if err != nil {
 		return err
 	}
-	// 2. get existing services
+	// 2. get online services
 	services, err := c.Naming.Find(serviceName)
 	if err != nil {
 		return err
