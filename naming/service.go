@@ -18,78 +18,78 @@ import (
 
 // implementation of qim.Service and qim.ServiceRegistration
 type DefaultService struct {
-	id        string
-	name      string
-	address   string
-	port      uint8
-	protocol  string
-	namespace string
-	tags      []string
-	meta      map[string]string
+	ID        string
+	Name      string
+	Address   string
+	Port      uint16
+	Protocol  string
+	Namespace string
+	Tags      []string
+	Meta      map[string]string
 }
 
-func NewEntry(id, name, protocol, address string, port uint8) *DefaultService {
+func NewEntry(id, name, protocol, address string, port uint16) *DefaultService {
 	return &DefaultService{
-		id:       id,
-		name:     name,
-		address:  address,
-		port:     port,
-		protocol: protocol,
+		ID:       id,
+		Name:     name,
+		Address:  address,
+		Port:     port,
+		Protocol: protocol,
 	}
 }
 
 // DialURL implements qim.ServiceRegistration
 func (s *DefaultService) DialURL() string {
-	if s.protocol == "tcp" {
-		return fmt.Sprintf("%s:%d", s.address, s.port)
+	if s.Protocol == "tcp" {
+		return fmt.Sprintf("%s:%d", s.Address, s.Port)
 	}
-	return fmt.Sprintf("%s://%s:%d", s.protocol, s.address, s.port)
+	return fmt.Sprintf("%s://%s:%d", s.Protocol, s.Address, s.Port)
 }
 
 // GetNamespace implements qim.ServiceRegistration
 func (s *DefaultService) GetNamespace() string {
-	return s.namespace
+	return s.Namespace
 }
 
 // GetProtocol implements qim.ServiceRegistration
 func (s *DefaultService) GetProtocol() string {
-	return s.protocol
+	return s.Protocol
 }
 
 // GetTags implements qim.ServiceRegistration
 func (s *DefaultService) GetTags() []string {
-	return s.tags
+	return s.Tags
 }
 
 // PublicAddress implements qim.ServiceRegistration
 func (s *DefaultService) PublicAddress() string {
-	return s.address
+	return s.Address
 }
 
 // PublicPort implements qim.ServiceRegistration
-func (s *DefaultService) PublicPort() uint8 {
-	return s.port
+func (s *DefaultService) PublicPort() uint16 {
+	return s.Port
 }
 
 // String implements qim.ServiceRegistration
 func (s *DefaultService) String() string {
 	return fmt.Sprintf("ID: %s, Name: %s, Address: %s, Port: %d, Ns: %s, Tags: %v, Meta: %v",
-		s.id, s.name, s.address, s.port, s.namespace, s.tags, s.meta)
+		s.ID, s.Name, s.Address, s.Port, s.Namespace, s.Tags, s.Meta)
 }
 
 // GetMeta implements qim.Service
 func (s *DefaultService) GetMeta() map[string]string {
-	return s.meta
+	return s.Meta
 }
 
 // ServiceID implements qim.Service
 func (s *DefaultService) ServiceID() string {
-	return s.id
+	return s.ID
 }
 
 // ServiceName implements qim.Service
 func (s *DefaultService) ServiceName() string {
-	return s.name
+	return s.Name
 }
 
 var _ qim.Service = (*DefaultService)(nil)

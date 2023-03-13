@@ -29,7 +29,7 @@ type Service interface {
 type ServiceRegistration interface {
 	Service
 	PublicAddress() string
-	PublicPort() uint8
+	PublicPort() uint16
 	DialURL() string
 	GetTags() []string
 	GetProtocol() string
