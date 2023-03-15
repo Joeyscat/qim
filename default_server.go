@@ -4,15 +4,14 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"log"
 	"net"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/gobwas/pool/pbufio"
 	"github.com/gobwas/ws"
+	"github.com/joeyscat/qim/logger"
 	"github.com/panjf2000/ants/v2"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
@@ -245,22 +244,9 @@ func NewServer(
 		Upgrader:            upgrader,
 		quit:                0,
 	}
-
-	var err error
-	if os.Getenv("DEBUG") == "true" {
-		s.lg, err = zap.NewDevelopment(zap.Fields(
-			zap.String("module", upgrader.Name()),
-			zap.String("id", service.ServiceID()),
-		))
-	} else {
-		s.lg, err = zap.NewProduction(zap.Fields(
-			zap.String("module", upgrader.Name()),
-			zap.String("id", service.ServiceID()),
-		))
-	}
-	if err != nil {
-		log.Fatalln(err)
-	}
+	// TODO
+	s.lg = logger.L.With(zap.String("module", upgrader.Name()),
+		zap.String("id", service.ServiceID()))
 
 	return s
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -37,7 +38,13 @@ func NewNaming(endpoints []string) (naming.Naming, error) {
 		return nil, err
 	}
 
-	logger, err := zap.NewDevelopment()
+	var logger *zap.Logger
+	zapFields := zap.Fields(zap.String("module", "naming"))
+	if os.Getenv("DEBUG") == "true" {
+		logger, err = zap.NewDevelopment(zapFields)
+	} else {
+		logger, err = zap.NewProduction(zapFields)
+	}
 	if err != nil {
 		return nil, err
 	}
