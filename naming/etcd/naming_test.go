@@ -8,11 +8,14 @@ import (
 	"github.com/joeyscat/qim"
 	"github.com/joeyscat/qim/naming"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 )
 
 func Test_etcdNaming_Register(t *testing.T) {
-	n, err := NewNaming([]string{"127.0.0.1:2379"})
+	log, err := zap.NewDevelopment()
+	assert.Nil(t, err)
+	n, err := NewNaming([]string{"127.0.0.1:2379"}, log)
 	assert.Nil(t, err)
 
 	s1 := naming.NewEntry("s1", "hello", "tcp", "127.0.0.1", 8001)
@@ -58,7 +61,9 @@ func Test_etcdNaming_Register(t *testing.T) {
 }
 
 func Test_etcdNaming_Subscribe(t *testing.T) {
-	n, err := NewNaming([]string{"127.0.0.1:2379"})
+	log, err := zap.NewDevelopment()
+	assert.Nil(t, err)
+	n, err := NewNaming([]string{"127.0.0.1:2379"}, log)
 	assert.Nil(t, err)
 
 	s1 := naming.NewEntry("s1", "hello", "tcp", "127.0.0.1", 8001)
@@ -120,7 +125,9 @@ func Test_etcdNaming_Subscribe(t *testing.T) {
 }
 
 func Test_etcdNaming_Find(t *testing.T) {
-	n, err := NewNaming([]string{"127.0.0.1:2379"})
+	log, err := zap.NewDevelopment()
+	assert.Nil(t, err)
+	n, err := NewNaming([]string{"127.0.0.1:2379"}, log)
 	assert.Nil(t, err)
 
 	s1 := naming.NewEntry("s1", "hello", "tcp", "127.0.0.1", 8001)

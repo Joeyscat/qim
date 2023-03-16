@@ -46,7 +46,7 @@ func ReadRoute(path string) (*Route, error) {
 
 	// build slots
 	for i, zone := range conf.Zones {
-		shard := make([]int, zone.Weight, 0)
+		shard := make([]int, zone.Weight)
 		for j := 0; j < zone.Weight; j++ {
 			shard[j] = i
 		}

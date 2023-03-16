@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
@@ -29,22 +28,11 @@ type etcdNaming struct {
 	lg              *zap.Logger
 }
 
-func NewNaming(endpoints []string) (naming.Naming, error) {
+func NewNaming(endpoints []string, lg *zap.Logger) (naming.Naming, error) {
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: 5 * time.Second,
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	var logger *zap.Logger
-	zapFields := zap.Fields(zap.String("module", "naming"))
-	if os.Getenv("DEBUG") == "true" {
-		logger, err = zap.NewDevelopment(zapFields)
-	} else {
-		logger, err = zap.NewProduction(zapFields)
-	}
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +43,7 @@ func NewNaming(endpoints []string) (naming.Naming, error) {
 		registry:        make(map[string]qim.ServiceRegistration),
 		watchCallback:   make(map[string]func([]qim.ServiceRegistration)),
 		watchCancelFunc: make(map[string]context.CancelFunc),
-		lg:              logger,
+		lg:              lg,
 	}
 	return e, nil
 }

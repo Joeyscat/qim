@@ -21,14 +21,22 @@ const (
 )
 
 type Handler struct {
-	ServiceID string
-	AppSecret string
-	Lg        *zap.Logger
+	serviceID string
+	appSecret string
+	lg        *zap.Logger
 }
 
 var _ qim.Acceptor = (*Handler)(nil)
 var _ qim.MessageListener = (*Handler)(nil)
 var _ qim.StateListener = (*Handler)(nil)
+
+func NewHander(serviceID, appSecret string, lg *zap.Logger) *Handler {
+	return &Handler{
+		serviceID: serviceID,
+		appSecret: appSecret,
+		lg:        lg,
+	}
+}
 
 // Accept implements qim.Acceptor
 func (h *Handler) Accept(conn qim.Conn, timeout time.Duration) (string, qim.Meta, error) {
@@ -42,7 +50,7 @@ func (h *Handler) Accept(conn qim.Conn, timeout time.Duration) (string, qim.Meta
 	buf := bytes.NewBuffer(frame.GetPayload())
 	req, err := pkt.MustReadLogicPkt(buf)
 	if err != nil {
-		h.Lg.Error("read packet error", zap.Error(err))
+		h.lg.Error("read packet error", zap.Error(err))
 		return "", nil, err
 	}
 
@@ -60,7 +68,7 @@ func (h *Handler) Accept(conn qim.Conn, timeout time.Duration) (string, qim.Meta
 	if err != nil {
 		return "", nil, err
 	}
-	secret := h.AppSecret
+	secret := h.appSecret
 	if secret == "" {
 		secret = token.DefaultSecret
 	}
@@ -75,14 +83,14 @@ func (h *Handler) Accept(conn qim.Conn, timeout time.Duration) (string, qim.Meta
 	}
 
 	// generate a globally unique ChannelID.
-	id := generateChannelID(h.ServiceID, tk.Account)
-	h.Lg.Info("accept channel", zap.Any("token", tk), zap.String("channelID", id))
+	id := generateChannelID(h.serviceID, tk.Account)
+	h.lg.Info("accept channel", zap.Any("token", tk), zap.String("channelID", id))
 
 	req.ChannelId = id
 	req.WriteBody(&pkt.Session{
 		Account:   tk.Account,
 		ChannelId: id,
-		GateId:    h.ServiceID,
+		GateId:    h.serviceID,
 		App:       tk.App,
 		RemoteIp:  getIP(conn.RemoteAddr().String()),
 	})
@@ -91,7 +99,7 @@ func (h *Handler) Accept(conn qim.Conn, timeout time.Duration) (string, qim.Meta
 
 	err = container.Forward(wire.SNLogin, req)
 	if err != nil {
-		h.Lg.Error("container.Forward error", zap.Error(err))
+		h.lg.Error("container.Forward error", zap.Error(err))
 		return "", nil, err
 	}
 
@@ -106,7 +114,7 @@ func (h *Handler) Receive(agent qim.Agent, payload []byte) {
 	buf := bytes.NewBuffer(payload)
 	packet, err := pkt.Read(buf)
 	if err != nil {
-		h.Lg.Error("read packet error", zap.Error(err))
+		h.lg.Error("read packet error", zap.Error(err))
 		return
 	}
 
@@ -120,8 +128,8 @@ func (h *Handler) Receive(agent qim.Agent, payload []byte) {
 	if logicPkt, ok := packet.(*pkt.LogicPkt); ok {
 		logicPkt.ChannelId = agent.ID()
 
-		messageInTotal.WithLabelValues(h.ServiceID, wire.SNTGateway, logicPkt.GetCommand()).Inc()
-		messageInFlowBytes.WithLabelValues(h.ServiceID, wire.SNTGateway, logicPkt.GetCommand()).Add(float64(len(payload)))
+		messageInTotal.WithLabelValues(h.serviceID, wire.SNTGateway, logicPkt.GetCommand()).Inc()
+		messageInFlowBytes.WithLabelValues(h.serviceID, wire.SNTGateway, logicPkt.GetCommand()).Add(float64(len(payload)))
 
 		if agent.GetMeta() != nil {
 			logicPkt.AddStringMeta(MetaKeyApp, agent.GetMeta()[MetaKeyApp])
@@ -130,7 +138,7 @@ func (h *Handler) Receive(agent qim.Agent, payload []byte) {
 
 		err = container.Forward(logicPkt.ServiceName(), logicPkt)
 		if err != nil {
-			h.Lg.Error("container.Forward error", zap.Error(err),
+			h.lg.Error("container.Forward error", zap.Error(err),
 				zap.String("id", agent.ID()),
 				zap.String("command", logicPkt.GetCommand()),
 				zap.String("dest", logicPkt.GetDest()))
@@ -140,12 +148,12 @@ func (h *Handler) Receive(agent qim.Agent, payload []byte) {
 
 // Disconnect implements qim.StateListener
 func (h *Handler) Disconnect(channelID string) error {
-	h.Lg.Info("disconnect", zap.String("channelID", channelID))
+	h.lg.Info("disconnect", zap.String("channelID", channelID))
 
 	logout := pkt.New(wire.CommandLoginSignOut, pkt.WithChannel(channelID))
 	err := container.Forward(wire.SNLogin, logout)
 	if err != nil {
-		h.Lg.Error("logout error", zap.Error(err))
+		h.lg.Error("logout error", zap.Error(err))
 		return err
 	}
 

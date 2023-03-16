@@ -1,0 +1,27 @@
+{
+    "routeBy": "app",
+    "zones": [
+        {
+            "id": "zone_01",
+            "weight": 10
+        },
+        {
+            "id": "zone_02",
+            "weight": 10
+        },
+        {
+            "id": "zone_03",
+            "weight": 30
+        },
+        {
+            "id": "zone_04",
+            "weight": 50
+        }
+    ],
+    "whitelist": [
+        {
+            "key": "qim",
+            "value": "zone_02"
+        }
+    ]
+}

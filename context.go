@@ -29,7 +29,7 @@ type Context interface {
 	Session() Session
 	RespWithError(status pkt.Status, err error) error
 	Resp(status pkt.Status, body proto.Message) error
-	Dispatch(body proto.Message, recvs ...*Location)
+	Dispatch(body proto.Message, recvs ...*Location) error
 	Next()
 }
 
@@ -54,8 +54,37 @@ func BuildContext() Context {
 }
 
 // Dispatch implements Context
-func (c *ContextImpl) Dispatch(body protoreflect.ProtoMessage, recvs ...*Location) {
-	panic("unimplemented")
+func (c *ContextImpl) Dispatch(body protoreflect.ProtoMessage, recvs ...*Location) error {
+	if len(recvs) == 0 {
+		return nil
+	}
+
+	packet := pkt.NewFrom(&c.request.Header)
+	packet.Flag = pkt.Flag_Push
+	packet.WriteBody(body)
+
+	logger.L.Debug("<-- Dispatch", zap.Int("to.len", len(recvs)), zap.Any("header", &c.request.Header))
+
+	// the receivers group by the destination of gateway
+	group := make(map[string][]string)
+	for _, recv := range recvs {
+		if recv.ChannelID == c.Session().GetChannelId() {
+			continue
+		}
+		if _, ok := group[recv.GateID]; !ok {
+			group[recv.GateID] = make([]string, 0)
+		}
+		group[recv.GateID] = append(group[recv.GateID], recv.ChannelID)
+	}
+	for gateway,ids := range group {
+		err := c.Push(gateway, ids, packet)
+		if err != nil {
+			logger.L.Error("Push error", zap.Error(err))
+		}
+		return err
+	}
+
+	return nil
 }
 
 // Header implements Context

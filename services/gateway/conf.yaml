@@ -1,0 +1,12 @@
+ServiceID: gate01
+ServiceName: wgateway
+Listen: ":8000"
+MonitorPort: 8001
+Public: 8000
+Tags:
+  - IDC:SH_ALI
+Domain: "ws://queenim.com"
+EtcdEndpoints: "localhost:2379"
+AppSecret: ""
+MessageGPool: 5000
+ConnectionGPool: 15000

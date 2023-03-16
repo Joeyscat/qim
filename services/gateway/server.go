@@ -50,16 +50,14 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 		return err
 	}
 
-	err = logger.Init(logger.Settings{})
+	err = logger.Init(logger.Settings{
+		Filename: "./data/gateway.log",
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	handler := &serv.Handler{
-		ServiceID: config.ServerID,
-		AppSecret: config.AppSecret,
-		Lg:        logger.L.With(zap.String("module", "gateway.handler")),
-	}
+	handler := serv.NewHander(config.ServerID, config.AppSecret, logger.L.With(zap.String("module", "gateway.handler")))
 
 	meta := make(map[string]string)
 	meta["domain"] = config.Domain
@@ -98,7 +96,7 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 	}
 	container.EnableMonitor(fmt.Sprintf(":%d", config.MonitorPort))
 
-	ns, err := etcd.NewNaming(strings.Split(config.EtcdEndpoints, ","))
+	ns, err := etcd.NewNaming(strings.Split(config.EtcdEndpoints, ","), logger.L.With(zap.String("module", "naming")))
 	if err != nil {
 		return err
 	}
