@@ -71,7 +71,7 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 	r.Use(middleware.Recover())
 
 	// login
-	loginHandler := handler.NewLoginHandler()
+	loginHandler := handler.NewLoginHandler(logger.L.With(zap.String("module", "login")))
 	r.Handle(wire.CommandLoginSignIn, loginHandler.DoSysLogin)
 	r.Handle(wire.CommandLoginSignOut, loginHandler.DoSysLogout)
 	// talk
@@ -79,9 +79,14 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 	r.Handle(wire.CommandChatUserTalk, chatHandler.DoUserTalk)
 	r.Handle(wire.CommandChatGroupTalk, chatHandler.DoGroupTalk)
 	r.Handle(wire.CommandChatTalkAck, chatHandler.DoTalkAck)
+	// group
+	groupHandler := handler.NewGroupHandler(groupService)
+	r.Handle(wire.CommandGroupCreate, groupHandler.DoCreate)
+	r.Handle(wire.CommandGroupJoin, groupHandler.DoJoin)
+	r.Handle(wire.CommandGroupQuit, groupHandler.DoQuit)
+	r.Handle(wire.CommandGroupDetail, groupHandler.DoDetail)
 
 	// TODO
-	// group
 	// offline
 
 	rdb, err := conf.InitRedis(config.RedisAddrs, "")
