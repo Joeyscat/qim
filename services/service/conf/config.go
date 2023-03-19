@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/joeyscat/qim"
 	"github.com/joeyscat/qim/logger"
+	"github.com/kataras/iris/v12/middleware/accesslog"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -19,19 +22,18 @@ type Server struct {
 }
 
 type Config struct {
-	ServerID        string
-	Listen          string `default:":8005"`
-	MonitorPort     uint16 `default:"8006"`
-	PublicAddress   string
-	PublicPort      uint16 `default:"8005"`
-	Tags            []string
-	Zone            string `default:"zone_03"`
-	EtcdEndpoints   string
-	RedisAddrs      string
-	RoyalURL        string
-	LogLevel        string `default:"debug"`
-	MessageGPool    int    `default:"5000"`
-	ConnectionGPool int    `default:"500"`
+	ServerID      string
+	NodeID        int64
+	Listen        string `default:":8080"`
+	PublicAddress string
+	PublicPort    uint16 `default:"8080"`
+	Tags          []string
+	EtcdEndpoints string
+	RedisAddrs    string
+	Driver        string `default:"mysql"`
+	BaseDB        string
+	MessageDB     string
+	LogLevel      string `default:"debug"`
 }
 
 func (c Config) String() string {
@@ -46,11 +48,6 @@ func Init(file string) (*Config, error) {
 
 	var config Config
 
-	err := envconfig.Process("qim", &config)
-	if err != nil {
-		return nil, err
-	}
-
 	if err := viper.ReadInConfig(); err != nil {
 		logger.L.Warn(err.Error())
 	} else {
@@ -59,9 +56,19 @@ func Init(file string) (*Config, error) {
 		}
 	}
 
+	err := envconfig.Process("qim", &config)
+	if err != nil {
+		return nil, err
+	}
+
 	if config.ServerID != "" {
 		localIP := qim.GetLocalIP()
-		config.ServerID = fmt.Sprintf("server_%s", strings.ReplaceAll(localIP, ".", ""))
+		config.ServerID = fmt.Sprintf("royal_%s", strings.ReplaceAll(localIP, ".", ""))
+		arr := strings.Split(localIP, ".")
+		if len(arr) == 4 {
+			suffix, _ := strconv.Atoi(arr[3])
+			config.NodeID = int64(suffix)
+		}
 	}
 	if config.PublicAddress == "" {
 		config.PublicAddress = qim.GetLocalIP()
@@ -102,4 +109,28 @@ func InitFailoverRedis(masterName, password string, sentinelAddrs []string, time
 		return nil, err
 	}
 	return redisdb, nil
+}
+
+func MakeAccessLog() *accesslog.AccessLog {
+	// create a new access log middleware.
+	ac := accesslog.File("./access.log")
+	// remove this if you don't want to log to the console.
+	ac.AddOutput(os.Stdout)
+
+	// the default configuration:
+	ac.Delim = '|'
+	ac.TimeFormat = "2006-01-02 15:04:05"
+	ac.Async = false
+	ac.IP = true
+	ac.BytesReceivedBody = true
+	ac.BytesSentBody = true
+	ac.BytesReceived = false
+	ac.BytesSent = false
+	ac.BodyMinify = true
+	ac.RequestBody = true
+	ac.ResponseBody = false
+	ac.KeepMultiLineError = true
+	ac.PanicLog = accesslog.LogHandler
+
+	return ac
 }

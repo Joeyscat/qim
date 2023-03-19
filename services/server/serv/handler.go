@@ -88,7 +88,7 @@ func (h *ServHandler) Receive(agent qim.Agent, payload []byte) {
 		}
 	}
 
-	h.lg.Debug("receive message", zap.Any("session", session), zap.Any("header", &packet.Header))
+	h.lg.Debug("receive message", zap.String("session", session.String()), zap.String("header", packet.Header.String()))
 
 	err = h.r.Serve(packet, h.dispatcher, h.cache, session)
 	if err != nil {

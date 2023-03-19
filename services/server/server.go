@@ -61,8 +61,10 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 	var groupService service.Group
 	var messageService service.Message
 	if strings.TrimSpace(config.RoyalURL) != "" {
-		groupService = service.NewGroupService(config.RoyalURL)
-		messageService = service.NewMessageService(config.RoyalURL)
+		groupService = service.NewGroupService(config.RoyalURL,
+			logger.L.With(zap.String("module", "group")))
+		messageService = service.NewMessageService(config.RoyalURL,
+			logger.L.With(zap.String("module", "message")))
 	} else {
 		// TODO
 	}
@@ -85,9 +87,10 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 	r.Handle(wire.CommandGroupJoin, groupHandler.DoJoin)
 	r.Handle(wire.CommandGroupQuit, groupHandler.DoQuit)
 	r.Handle(wire.CommandGroupDetail, groupHandler.DoDetail)
-
-	// TODO
 	// offline
+	offlineHandler := handler.NewOfflineHandler(messageService)
+	r.Handle(wire.CommandOfflineIndex, offlineHandler.DoSyncIndex)
+	r.Handle(wire.CommandOfflineContent, offlineHandler.DoSyncContent)
 
 	rdb, err := conf.InitRedis(config.RedisAddrs, "")
 	if err != nil {

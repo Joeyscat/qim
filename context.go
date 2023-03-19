@@ -63,7 +63,7 @@ func (c *ContextImpl) Dispatch(body protoreflect.ProtoMessage, recvs ...*Locatio
 	packet.Flag = pkt.Flag_Push
 	packet.WriteBody(body)
 
-	logger.L.Debug("<-- Dispatch", zap.Int("to.len", len(recvs)), zap.Any("header", &c.request.Header))
+	logger.L.Debug("<-- Dispatch", zap.Int("to.len", len(recvs)), zap.String("header", c.request.Header.String()))
 
 	// the receivers group by the destination of gateway
 	group := make(map[string][]string)
@@ -76,7 +76,7 @@ func (c *ContextImpl) Dispatch(body protoreflect.ProtoMessage, recvs ...*Locatio
 		}
 		group[recv.GateID] = append(group[recv.GateID], recv.ChannelID)
 	}
-	for gateway,ids := range group {
+	for gateway, ids := range group {
 		err := c.Push(gateway, ids, packet)
 		if err != nil {
 			logger.L.Error("Push error", zap.Error(err))
@@ -119,8 +119,8 @@ func (c *ContextImpl) Resp(status pkt.Status, body protoreflect.ProtoMessage) er
 	packet.WriteBody(body)
 	packet.Flag = pkt.Flag_Response
 	logger.L.Debug("<-- Resp", zap.String("toAccount", c.session.GetAccount()),
-		zap.Any("header", &c.request.Header),
-		zap.Any("status", status),
+		zap.String("header", c.request.Header.String()),
+		zap.String("status", status.String()),
 		zap.Any("body", body),
 	)
 

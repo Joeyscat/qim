@@ -126,6 +126,6 @@ message MessageContentResp { repeated MessageContent contents = 1; }
 message MessageContent {
   int64 message_id = 1;
   int32 type = 2;
-  string bodt = 3;
+  string body = 3;
   string extra = 4;
 }

@@ -248,7 +248,7 @@ func connectToService(serviceName string) error {
 			if _, ok := clients.Get(service.ServiceID()); ok {
 				continue
 			}
-			log.Info("Watch for a new service", zap.Any("service", service))
+			log.Info("Watch for a new service", zap.String("service", service.String()))
 			service.GetMeta()[KeyServiceState] = StateYoung
 
 			go func(service qim.ServiceRegistration) {
@@ -369,7 +369,7 @@ func pushMessage(packet *pkt.LogicPkt) error {
 	packet.DelMeta(wire.MetaDestServer)
 	packet.DelMeta(wire.MetaDestChannels)
 	payload := pkt.Marshal(packet)
-	c.lg.Debug("pushing message", zap.Any("channels", channelIDs), zap.Any("packet", packet))
+	c.lg.Debug("pushing message", zap.Strings("channels", channelIDs), zap.String("packet", packet.String()))
 
 	for _, channel := range channelIDs {
 		messageOutFlowBytes.WithLabelValues(packet.Command).Add(float64(len(payload)))
