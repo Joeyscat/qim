@@ -186,10 +186,10 @@ func (mr *MockServiceRegistrationMockRecorder) PublicAddress() *gomock.Call {
 }
 
 // PublicPort mocks base method.
-func (m *MockServiceRegistration) PublicPort() uint8 {
+func (m *MockServiceRegistration) PublicPort() uint16 {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PublicPort")
-	ret0, _ := ret[0].(uint8)
+	ret0, _ := ret[0].(uint16)
 	return ret0
 }
 
@@ -349,10 +349,10 @@ func (mr *MockServerMockRecorder) PublicAddress() *gomock.Call {
 }
 
 // PublicPort mocks base method.
-func (m *MockServer) PublicPort() uint8 {
+func (m *MockServer) PublicPort() uint16 {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PublicPort")
-	ret0, _ := ret[0].(uint8)
+	ret0, _ := ret[0].(uint16)
 	return ret0
 }
 

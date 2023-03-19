@@ -5,17 +5,17 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/joeyscat/qim/wire/rpc"
+	"github.com/joeyscat/qim/wire/rpcc"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 )
 
 type Group interface {
-	Create(app string, req *rpc.CreateGroupReq) (*rpc.CreateGroupResp, error)
-	Members(app string, req *rpc.GroupMembersReq) (*rpc.GroupMembersResp, error)
-	Join(app string, req *rpc.JoinGroupReq) error
-	Quit(app string, req *rpc.QuitGroupReq) error
-	Detail(app string, req *rpc.GetGroupReq) (*rpc.GetGroupResp, error)
+	Create(app string, req *rpcc.CreateGroupReq) (*rpcc.CreateGroupResp, error)
+	Members(app string, req *rpcc.GroupMembersReq) (*rpcc.GroupMembersResp, error)
+	Join(app string, req *rpcc.JoinGroupReq) error
+	Quit(app string, req *rpcc.QuitGroupReq) error
+	Detail(app string, req *rpcc.GetGroupReq) (*rpcc.GetGroupResp, error)
 }
 
 type GroupHttp struct {
@@ -51,7 +51,7 @@ func NewGroupServiceWithSRV(scheme string, srv *resty.SRVRecord, lg *zap.Logger)
 }
 
 // Create implements Group
-func (g *GroupHttp) Create(app string, req *rpc.CreateGroupReq) (*rpc.CreateGroupResp, error) {
+func (g *GroupHttp) Create(app string, req *rpcc.CreateGroupReq) (*rpcc.CreateGroupResp, error) {
 	path := fmt.Sprintf("%s/api/%s/group", g.url, app)
 	body, _ := proto.Marshal(req)
 
@@ -63,7 +63,7 @@ func (g *GroupHttp) Create(app string, req *rpc.CreateGroupReq) (*rpc.CreateGrou
 		return nil, fmt.Errorf("GroupHttp.Create - http status code: %d", response.StatusCode())
 	}
 
-	var resp rpc.CreateGroupResp
+	var resp rpcc.CreateGroupResp
 	_ = proto.Unmarshal(response.Body(), &resp)
 	g.lg.Debug("GroupHttp.Create", zap.String("resp", resp.String()))
 
@@ -71,7 +71,7 @@ func (g *GroupHttp) Create(app string, req *rpc.CreateGroupReq) (*rpc.CreateGrou
 }
 
 // Detail implements Group
-func (g *GroupHttp) Detail(app string, req *rpc.GetGroupReq) (*rpc.GetGroupResp, error) {
+func (g *GroupHttp) Detail(app string, req *rpcc.GetGroupReq) (*rpcc.GetGroupResp, error) {
 	path := fmt.Sprintf("%s/api/%s/group", g.url, app)
 
 	response, err := g.Req().Get(path)
@@ -82,7 +82,7 @@ func (g *GroupHttp) Detail(app string, req *rpc.GetGroupReq) (*rpc.GetGroupResp,
 		return nil, fmt.Errorf("GroupHttp.Detail - http status code: %d", response.StatusCode())
 	}
 
-	var resp rpc.GetGroupResp
+	var resp rpcc.GetGroupResp
 	_ = proto.Unmarshal(response.Body(), &resp)
 	g.lg.Debug("GroupHttp.Detail", zap.String("resp", resp.String()))
 
@@ -90,7 +90,7 @@ func (g *GroupHttp) Detail(app string, req *rpc.GetGroupReq) (*rpc.GetGroupResp,
 }
 
 // Join implements Group
-func (g *GroupHttp) Join(app string, req *rpc.JoinGroupReq) error {
+func (g *GroupHttp) Join(app string, req *rpcc.JoinGroupReq) error {
 	path := fmt.Sprintf("%s/api/%s/group/member", g.url, app)
 	body, _ := proto.Marshal(req)
 
@@ -106,7 +106,7 @@ func (g *GroupHttp) Join(app string, req *rpc.JoinGroupReq) error {
 }
 
 // Members implements Group
-func (g *GroupHttp) Members(app string, req *rpc.GroupMembersReq) (*rpc.GroupMembersResp, error) {
+func (g *GroupHttp) Members(app string, req *rpcc.GroupMembersReq) (*rpcc.GroupMembersResp, error) {
 	path := fmt.Sprintf("%s/api/%s/group/members/%s", g.url, app, req.GetGroupId())
 
 	response, err := g.Req().Get(path)
@@ -117,7 +117,7 @@ func (g *GroupHttp) Members(app string, req *rpc.GroupMembersReq) (*rpc.GroupMem
 		return nil, fmt.Errorf("GroupHttp.Members - http status code: %d", response.StatusCode())
 	}
 
-	var resp rpc.GroupMembersResp
+	var resp rpcc.GroupMembersResp
 	_ = proto.Unmarshal(response.Body(), &resp)
 	g.lg.Debug("GroupHttp.Members", zap.String("resp", resp.String()))
 
@@ -125,7 +125,7 @@ func (g *GroupHttp) Members(app string, req *rpc.GroupMembersReq) (*rpc.GroupMem
 }
 
 // Quit implements Group
-func (g *GroupHttp) Quit(app string, req *rpc.QuitGroupReq) error {
+func (g *GroupHttp) Quit(app string, req *rpcc.QuitGroupReq) error {
 	path := fmt.Sprintf("%s/api/%s/group/member", g.url, app)
 	body, _ := proto.Marshal(req)
 

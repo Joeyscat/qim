@@ -6,7 +6,7 @@ import (
 	"github.com/joeyscat/qim"
 	"github.com/joeyscat/qim/services/server/service"
 	"github.com/joeyscat/qim/wire/pkt"
-	"github.com/joeyscat/qim/wire/rpc"
+	"github.com/joeyscat/qim/wire/rpcc"
 )
 
 type OfflineHandler struct {
@@ -26,7 +26,7 @@ func (h *OfflineHandler) DoSyncIndex(ctx qim.Context) {
 		return
 	}
 
-	resp, err := h.msgService.GetMessageIndex(ctx.Session().GetApp(), &rpc.GetOfflineMessageIndexReq{
+	resp, err := h.msgService.GetMessageIndex(ctx.Session().GetApp(), &rpcc.GetOfflineMessageIndexReq{
 		Account:   ctx.Session().GetAccount(),
 		MessageId: req.GetMessageId(),
 	})
@@ -61,7 +61,7 @@ func (h *OfflineHandler) DoSyncContent(ctx qim.Context) {
 		return
 	}
 
-	resp, err := h.msgService.GetMessageContent(ctx.Session().GetApp(), &rpc.GetOfflineMessageContentReq{
+	resp, err := h.msgService.GetMessageContent(ctx.Session().GetApp(), &rpcc.GetOfflineMessageContentReq{
 		MessageIds: req.GetMessageIds(),
 	})
 	if err != nil {

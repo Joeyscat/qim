@@ -1,0 +1,9 @@
+ServiceID: royal01
+Listen: ":8080"
+PublicPort: 8080
+Tags:
+  - "royal"
+EtcdEndpoints: "http://localhost:2379"
+RedisAddrs: "localhost:6379"
+BaseDB: "root:123456@tcp(localhost:3306)/qim_base?charset=utf8&parseTime=True&loc=Local"
+MessageDB: "root:123456@tcp(localhost:3306)/qim_message?charset=utf8&parseTime=True&loc=Local"

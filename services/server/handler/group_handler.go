@@ -4,7 +4,7 @@ import (
 	"github.com/joeyscat/qim"
 	"github.com/joeyscat/qim/services/server/service"
 	"github.com/joeyscat/qim/wire/pkt"
-	"github.com/joeyscat/qim/wire/rpc"
+	"github.com/joeyscat/qim/wire/rpcc"
 )
 
 type GroupHandler struct {
@@ -24,7 +24,7 @@ func (h *GroupHandler) DoCreate(ctx qim.Context) {
 		return
 	}
 
-	resp, err := h.groupService.Create(ctx.Session().GetApp(), &rpc.CreateGroupReq{
+	resp, err := h.groupService.Create(ctx.Session().GetApp(), &rpcc.CreateGroupReq{
 		Name:         req.GetName(),
 		Avatar:       req.GetAvatar(),
 		Introduction: req.GetIntroduction(),
@@ -64,7 +64,7 @@ func (h *GroupHandler) DoJoin(ctx qim.Context) {
 		return
 	}
 
-	err := h.groupService.Join(ctx.Session().GetApp(), &rpc.JoinGroupReq{
+	err := h.groupService.Join(ctx.Session().GetApp(), &rpcc.JoinGroupReq{
 		Account: req.GetAccount(),
 		GroupId: req.GetGroupId(),
 	})
@@ -83,7 +83,7 @@ func (h *GroupHandler) DoQuit(ctx qim.Context) {
 		return
 	}
 
-	err := h.groupService.Quit(ctx.Session().GetApp(), &rpc.QuitGroupReq{
+	err := h.groupService.Quit(ctx.Session().GetApp(), &rpcc.QuitGroupReq{
 		Account: req.GetAccount(),
 		GroupId: req.GetGroupId(),
 	})
@@ -102,14 +102,14 @@ func (h *GroupHandler) DoDetail(ctx qim.Context) {
 		return
 	}
 
-	resp, err := h.groupService.Detail(ctx.Session().GetApp(), &rpc.GetGroupReq{
+	resp, err := h.groupService.Detail(ctx.Session().GetApp(), &rpcc.GetGroupReq{
 		GroupId: req.GetGroupId(),
 	})
 	if err != nil {
 		_ = ctx.RespWithError(pkt.Status_SystemException, err)
 		return
 	}
-	membersResp, err := h.groupService.Members(ctx.Session().GetApp(), &rpc.GroupMembersReq{
+	membersResp, err := h.groupService.Members(ctx.Session().GetApp(), &rpcc.GroupMembersReq{
 		GroupId: req.GetGroupId(),
 	})
 	if err != nil {

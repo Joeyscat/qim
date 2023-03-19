@@ -6,7 +6,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/joeyscat/qim/services/service/database"
 	"github.com/joeyscat/qim/wire"
-	"github.com/joeyscat/qim/wire/rpc"
+	"github.com/joeyscat/qim/wire/rpcc"
 	"github.com/kataras/iris/v12"
 	"gorm.io/gorm"
 )
@@ -19,7 +19,7 @@ type ServiceHandler struct {
 }
 
 func (h *ServiceHandler) InsertUserMessage(c iris.Context) {
-	var req rpc.InsertMessageReq
+	var req rpcc.InsertMessageReq
 	if err := c.ReadJSON(&req); err != nil {
 		c.StopWithError(iris.StatusBadRequest, err)
 		return
@@ -31,12 +31,12 @@ func (h *ServiceHandler) InsertUserMessage(c iris.Context) {
 		return
 	}
 
-	_, _ = c.Negotiate(&rpc.InsertMessageResp{
+	_, _ = c.Negotiate(&rpcc.InsertMessageResp{
 		MessageId: messageID,
 	})
 }
 
-func (h *ServiceHandler) insertUserMessage(req *rpc.InsertMessageReq) (int64, error) {
+func (h *ServiceHandler) insertUserMessage(req *rpcc.InsertMessageReq) (int64, error) {
 	messageID := h.IDgen.Next().Int64()
 
 	// diffusion write
@@ -83,7 +83,7 @@ func (h *ServiceHandler) insertUserMessage(req *rpc.InsertMessageReq) (int64, er
 }
 
 func (h *ServiceHandler) InsertGroupMessage(c iris.Context) {
-	var req rpc.InsertMessageReq
+	var req rpcc.InsertMessageReq
 	if err := c.ReadJSON(&req); err != nil {
 		c.StopWithError(iris.StatusBadRequest, err)
 		return
@@ -95,16 +95,16 @@ func (h *ServiceHandler) InsertGroupMessage(c iris.Context) {
 		return
 	}
 
-	_, _ = c.Negotiate(&rpc.InsertMessageResp{
+	_, _ = c.Negotiate(&rpcc.InsertMessageResp{
 		MessageId: messageID,
 	})
 }
 
-func (h *ServiceHandler) insertGroupMessage(req *rpc.InsertMessageReq) (int64, error) {
+func (h *ServiceHandler) insertGroupMessage(req *rpcc.InsertMessageReq) (int64, error) {
 	messageID := h.IDgen.Next().Int64()
 
 	var members []database.GroupMember
-	err := h.BaseDB.Where(&database.GroupMember{Group: req.Dest}).Find(&members).Error
+	err := h.BaseDB.Where(&database.GroupMember{Group: req.GetDest()}).Find(&members).Error
 	if err != nil {
 		return 0, err
 	}
@@ -151,7 +151,7 @@ func (h *ServiceHandler) insertGroupMessage(req *rpc.InsertMessageReq) (int64, e
 }
 
 func (h *ServiceHandler) MessageAck(c iris.Context) {
-	var req rpc.AckMessageReq
+	var req rpcc.AckMessageReq
 	if err := c.ReadJSON(&req); err != nil {
 		c.StopWithError(iris.StatusBadRequest, err)
 		return
@@ -174,7 +174,7 @@ func setMessageAck(cache *redis.Client, account string, messageID int64) error {
 }
 
 func (h *ServiceHandler) GetOfflineMessageIndex(c iris.Context) {
-	var req rpc.GetOfflineMessageIndexReq
+	var req rpcc.GetOfflineMessageIndexReq
 	if err := c.ReadJSON(&req); err != nil {
 		c.StopWithError(iris.StatusBadRequest, err)
 		return
@@ -186,7 +186,7 @@ func (h *ServiceHandler) GetOfflineMessageIndex(c iris.Context) {
 		return
 	}
 
-	var indexes []*rpc.MessageIndex
+	var indexes []*rpcc.MessageIndex
 	tx := h.MessageDB.Model(&database.MessageIndex{}).Select("send_time", "account_b", "direction", "message_id", "group")
 	err = tx.Where("account_a = ? AND send_time > ? and direction = ?", req.GetAccount(), start, 0).Order("send_time asc").
 		Limit(wire.OfflineSyncIndexCount).Find(&indexes).Error
@@ -201,7 +201,7 @@ func (h *ServiceHandler) GetOfflineMessageIndex(c iris.Context) {
 		return
 	}
 
-	_, _ = c.Negotiate(&rpc.GetOfflineMessageIndexResp{
+	_, _ = c.Negotiate(&rpcc.GetOfflineMessageIndexResp{
 		List: indexes,
 	})
 }
@@ -232,7 +232,7 @@ func (h *ServiceHandler) getSendTime(account string, messageID int64) (int64, er
 }
 
 func (h *ServiceHandler) GetOfflineMessageContent(c iris.Context) {
-	var req rpc.GetOfflineMessageContentReq
+	var req rpcc.GetOfflineMessageContentReq
 	if err := c.ReadJSON(&req); err != nil {
 		c.StopWithError(iris.StatusBadRequest, err)
 		return
@@ -244,14 +244,14 @@ func (h *ServiceHandler) GetOfflineMessageContent(c iris.Context) {
 		return
 	}
 
-	var contents []*rpc.Message
+	var contents []*rpcc.Message
 	err := h.MessageDB.Model(&database.MessageContent{}).Where(req.GetMessageIds()).Find(&contents).Error
 	if err != nil {
 		c.StopWithError(iris.StatusInternalServerError, err)
 		return
 	}
 
-	_, _ = c.Negotiate(&rpc.GetOfflineMessageContentResp{
+	_, _ = c.Negotiate(&rpcc.GetOfflineMessageContentResp{
 		List: contents,
 	})
 }

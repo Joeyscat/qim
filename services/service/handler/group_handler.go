@@ -6,14 +6,14 @@ import (
 
 	"github.com/bwmarrin/snowflake"
 	"github.com/joeyscat/qim/services/service/database"
-	"github.com/joeyscat/qim/wire/rpc"
+	"github.com/joeyscat/qim/wire/rpcc"
 	"github.com/kataras/iris/v12"
 	"gorm.io/gorm"
 )
 
 func (h *ServiceHandler) GroupCreate(c iris.Context) {
 	app := c.Params().Get("app")
-	var req rpc.CreateGroupReq
+	var req rpcc.CreateGroupReq
 	if err := c.ReadJSON(&req); err != nil {
 		c.StopWithError(iris.StatusBadRequest, err)
 		return
@@ -26,12 +26,12 @@ func (h *ServiceHandler) GroupCreate(c iris.Context) {
 		return
 	}
 
-	_, _ = c.Negotiate(&rpc.CreateGroupResp{
+	_, _ = c.Negotiate(&rpcc.CreateGroupResp{
 		GroupId: groupID.Base36(),
 	})
 }
 
-func (h *ServiceHandler) groupCreate(req *rpc.CreateGroupReq) (snowflake.ID, error) {
+func (h *ServiceHandler) groupCreate(req *rpcc.CreateGroupReq) (snowflake.ID, error) {
 	groupID := h.IDgen.Next()
 	g := &database.Group{
 		Model:       database.Model{ID: groupID.Int64()},
@@ -71,7 +71,7 @@ func (h *ServiceHandler) groupCreate(req *rpc.CreateGroupReq) (snowflake.ID, err
 }
 
 func (h *ServiceHandler) GroupJoin(c iris.Context) {
-	var req rpc.JoinGroupReq
+	var req rpcc.JoinGroupReq
 	if err := c.ReadJSON(&req); err != nil {
 		c.StopWithError(iris.StatusBadRequest, err)
 		return
@@ -90,7 +90,7 @@ func (h *ServiceHandler) GroupJoin(c iris.Context) {
 }
 
 func (h *ServiceHandler) GroupQuit(c iris.Context) {
-	var req rpc.QuitGroupReq
+	var req rpcc.QuitGroupReq
 	if err := c.ReadJSON(&req); err != nil {
 		c.StopWithError(iris.StatusBadRequest, err)
 		return
@@ -121,15 +121,15 @@ func (h *ServiceHandler) GroupMembers(c iris.Context) {
 		return
 	}
 
-	var users = make([]*rpc.Member, len(members))
+	var users = make([]*rpcc.Member, len(members))
 	for i, m := range members {
-		users[i] = &rpc.Member{
+		users[i] = &rpcc.Member{
 			Account:  m.Account,
 			Alias:    m.Alias,
 			JoinTime: m.CreatedAt.Unix(),
 		}
 	}
-	_, _ = c.Negotiate(&rpc.GroupMembersResp{
+	_, _ = c.Negotiate(&rpcc.GroupMembersResp{
 		Users: users,
 	})
 }
@@ -154,7 +154,7 @@ func (h *ServiceHandler) GroupGet(c iris.Context) {
 		return
 	}
 
-	_, _ = c.Negotiate(&rpc.GetGroupResp{
+	_, _ = c.Negotiate(&rpcc.GetGroupResp{
 		Id:           groupID,
 		Name:         group.Name,
 		Avatar:       group.Avatar,

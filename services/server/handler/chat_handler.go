@@ -7,7 +7,7 @@ import (
 	"github.com/joeyscat/qim"
 	"github.com/joeyscat/qim/services/server/service"
 	"github.com/joeyscat/qim/wire/pkt"
-	"github.com/joeyscat/qim/wire/rpc"
+	"github.com/joeyscat/qim/wire/rpcc"
 )
 
 var ErrNoDestination = errors.New("dest is empty")
@@ -48,11 +48,11 @@ func (h *ChatHandler) DoUserTalk(ctx qim.Context) {
 
 	// save offline message
 	sendTime := time.Now().Local().UnixNano()
-	resp, err := h.msgService.InsertUser(ctx.Session().GetApp(), &rpc.InsertMessageReq{
+	resp, err := h.msgService.InsertUser(ctx.Session().GetApp(), &rpcc.InsertMessageReq{
 		Sender:   ctx.Session().GetAccount(),
 		Dest:     receiver,
 		SendTime: sendTime,
-		Message: &rpc.Message{
+		Message: &rpcc.Message{
 			Type:  req.GetType(),
 			Body:  req.GetBody(),
 			Extra: req.GetExtra(),
@@ -100,11 +100,11 @@ func (h *ChatHandler) DoGroupTalk(ctx qim.Context) {
 	group := ctx.Header().GetDest()
 	sendTime := time.Now().Local().UnixNano()
 
-	resp, err := h.msgService.InsertGroup(ctx.Session().GetApp(), &rpc.InsertMessageReq{
+	resp, err := h.msgService.InsertGroup(ctx.Session().GetApp(), &rpcc.InsertMessageReq{
 		Sender:   ctx.Session().GetAccount(),
 		Dest:     group,
 		SendTime: sendTime,
-		Message: &rpc.Message{
+		Message: &rpcc.Message{
 			Type:  req.GetType(),
 			Body:  req.GetBody(),
 			Extra: req.GetExtra(),
@@ -115,7 +115,7 @@ func (h *ChatHandler) DoGroupTalk(ctx qim.Context) {
 		return
 	}
 
-	membersResponse, err := h.groupService.Members(ctx.Session().GetApp(), &rpc.GroupMembersReq{
+	membersResponse, err := h.groupService.Members(ctx.Session().GetApp(), &rpcc.GroupMembersReq{
 		GroupId: group,
 	})
 	if err != nil {
@@ -124,7 +124,7 @@ func (h *ChatHandler) DoGroupTalk(ctx qim.Context) {
 	}
 	var members = make([]string, len(membersResponse.GetUsers()))
 	for i, user := range membersResponse.GetUsers() {
-		members[i] = user.Account
+		members[i] = user.GetAccount()
 	}
 
 	locs, err := ctx.GetLocations(members...)
@@ -148,7 +148,7 @@ func (h *ChatHandler) DoGroupTalk(ctx qim.Context) {
 	}
 
 	_ = ctx.Resp(pkt.Status_Success, &pkt.MessageResp{
-		MessageId: resp.MessageId,
+		MessageId: resp.GetMessageId(),
 		SendTime:  sendTime,
 	})
 }
@@ -160,7 +160,7 @@ func (h *ChatHandler) DoTalkAck(ctx qim.Context) {
 		return
 	}
 
-	err := h.msgService.SetAck(ctx.Session().GetApp(), &rpc.AckMessageReq{
+	err := h.msgService.SetAck(ctx.Session().GetApp(), &rpcc.AckMessageReq{
 		Account:   ctx.Session().GetAccount(),
 		MessageId: req.GetMessageId(),
 	})

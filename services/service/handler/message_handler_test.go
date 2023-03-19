@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/joeyscat/qim/services/service/database"
-	"github.com/joeyscat/qim/wire/rpc"
+	"github.com/joeyscat/qim/wire/rpcc"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -51,11 +51,11 @@ func Benchmark_InsertUserMessage(b *testing.B) {
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, _ = handler.insertUserMessage(&rpc.InsertMessageReq{
+			_, _ = handler.insertUserMessage(&rpcc.InsertMessageReq{
 				Sender:   "u1",
 				Dest:     ksuid.New().String(),
 				SendTime: time.Now().UnixNano(),
-				Message:  &rpc.Message{Type: 1, Body: "hello"},
+				Message:  &rpcc.Message{Type: 1, Body: "hello"},
 			})
 		}
 	})
@@ -71,7 +71,7 @@ func Benchmark_InsertGroup10Message(b *testing.B) {
 		members[i] = fmt.Sprintf("u_%d", i+1)
 	}
 
-	groupID, err := handler.groupCreate(&rpc.CreateGroupReq{
+	groupID, err := handler.groupCreate(&rpcc.CreateGroupReq{
 		App:     "app1",
 		Owner:   "u1",
 		Name:    "test",
@@ -84,11 +84,11 @@ func Benchmark_InsertGroup10Message(b *testing.B) {
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, _ = handler.insertGroupMessage(&rpc.InsertMessageReq{
+			_, _ = handler.insertGroupMessage(&rpcc.InsertMessageReq{
 				Sender:   "u1",
 				Dest:     groupID.Base36(),
 				SendTime: time.Now().UnixNano(),
-				Message:  &rpc.Message{Type: 1, Body: "hello"},
+				Message:  &rpcc.Message{Type: 1, Body: "hello"},
 			})
 		}
 	})
@@ -104,7 +104,7 @@ func Benchmark_InsertGroup50Message(b *testing.B) {
 		members[i] = fmt.Sprintf("u_%d", i+1)
 	}
 
-	groupID, err := handler.groupCreate(&rpc.CreateGroupReq{
+	groupID, err := handler.groupCreate(&rpcc.CreateGroupReq{
 		App:     "app1",
 		Owner:   "u1",
 		Name:    "test",
@@ -117,11 +117,11 @@ func Benchmark_InsertGroup50Message(b *testing.B) {
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, _ = handler.insertGroupMessage(&rpc.InsertMessageReq{
+			_, _ = handler.insertGroupMessage(&rpcc.InsertMessageReq{
 				Sender:   "u1",
 				Dest:     groupID.Base36(),
 				SendTime: time.Now().UnixNano(),
-				Message:  &rpc.Message{Type: 1, Body: "hello"},
+				Message:  &rpcc.Message{Type: 1, Body: "hello"},
 			})
 		}
 	})
@@ -132,7 +132,7 @@ func TestServiceHandler_insertUserMessage(t *testing.T) {
 		handler *ServiceHandler
 	}
 	type args struct {
-		req *rpc.InsertMessageReq
+		req *rpcc.InsertMessageReq
 	}
 	tests := []struct {
 		name    string
@@ -143,8 +143,8 @@ func TestServiceHandler_insertUserMessage(t *testing.T) {
 		{
 			"insert user message",
 			fields{&handler},
-			args{&rpc.InsertMessageReq{
-				Sender: "u1", Dest: "u2", SendTime: time.Now().UnixNano(), Message: &rpc.Message{Type: 1, Body: "hello"},
+			args{&rpcc.InsertMessageReq{
+				Sender: "u1", Dest: "u2", SendTime: time.Now().UnixNano(), Message: &rpcc.Message{Type: 1, Body: "hello"},
 			}},
 			false,
 		},

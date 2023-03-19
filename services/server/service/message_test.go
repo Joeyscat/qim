@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/joeyscat/qim/wire/rpc"
+	"github.com/joeyscat/qim/wire/rpcc"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
@@ -21,12 +21,12 @@ var messageService = NewMessageServiceWithSRV("http", &resty.SRVRecord{
 }, log)
 
 func TestMessage(t *testing.T) {
-	m := rpc.Message{
+	m := rpcc.Message{
 		Type: 1,
 		Body: "hello",
 	}
 	dest := fmt.Sprintf("u%d", time.Now().Unix())
-	_, err := messageService.InsertUser(app, &rpc.InsertMessageReq{
+	_, err := messageService.InsertUser(app, &rpcc.InsertMessageReq{
 		Sender:   "u1",
 		Dest:     dest,
 		SendTime: time.Now().UnixNano(),
@@ -34,7 +34,7 @@ func TestMessage(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	resp, err := messageService.GetMessageIndex(app, &rpc.GetOfflineMessageIndexReq{
+	resp, err := messageService.GetMessageIndex(app, &rpcc.GetOfflineMessageIndexReq{
 		Account: dest,
 	})
 	assert.NoError(t, err)
@@ -43,7 +43,7 @@ func TestMessage(t *testing.T) {
 	index := resp.GetList()[0]
 	assert.Equal(t, "u1", index.GetAccountB())
 
-	resp2, err := messageService.GetMessageContent(app, &rpc.GetOfflineMessageContentReq{
+	resp2, err := messageService.GetMessageContent(app, &rpcc.GetOfflineMessageContentReq{
 		MessageIds: []int64{index.GetMessageId()},
 	})
 	assert.NoError(t, err)
@@ -54,14 +54,14 @@ func TestMessage(t *testing.T) {
 	assert.Equal(t, m.GetType(), content.GetType())
 	assert.Equal(t, index.GetMessageId(), content.GetId())
 
-	resp, err = messageService.GetMessageIndex(app, &rpc.GetOfflineMessageIndexReq{
+	resp, err = messageService.GetMessageIndex(app, &rpcc.GetOfflineMessageIndexReq{
 		Account:   dest,
 		MessageId: index.GetMessageId(),
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(resp.GetList()))
 
-	resp, err = messageService.GetMessageIndex(app, &rpc.GetOfflineMessageIndexReq{
+	resp, err = messageService.GetMessageIndex(app, &rpcc.GetOfflineMessageIndexReq{
 		Account: dest,
 	})
 	assert.NoError(t, err)
