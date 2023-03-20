@@ -4,22 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/joeyscat/qim"
-	"github.com/joeyscat/qim/logger"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 type Server struct {
 }
 
 type Config struct {
-	ServerID        string
+	ServiceID       string
 	Listen          string `default:":8005"`
 	MonitorPort     uint16 `default:"8006"`
 	PublicAddress   string
@@ -43,6 +42,7 @@ func Init(file string) (*Config, error) {
 	viper.SetConfigFile(file)
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("/etc/conf")
+	viper.SetConfigType("yaml")
 
 	var config Config
 
@@ -52,21 +52,20 @@ func Init(file string) (*Config, error) {
 	}
 
 	if err := viper.ReadInConfig(); err != nil {
-		logger.L.Warn(err.Error())
+		log.Fatalf("read config error: %s", err.Error())
 	} else {
 		if err := viper.Unmarshal(&config); err != nil {
 			return nil, err
 		}
 	}
 
-	if config.ServerID != "" {
+	if config.ServiceID == "" {
 		localIP := qim.GetLocalIP()
-		config.ServerID = fmt.Sprintf("server_%s", strings.ReplaceAll(localIP, ".", ""))
+		config.ServiceID = fmt.Sprintf("server_%s", strings.ReplaceAll(localIP, ".", ""))
 	}
 	if config.PublicAddress == "" {
 		config.PublicAddress = qim.GetLocalIP()
 	}
-	logger.L.Debug("load config finished", zap.String("config", config.String()))
 
 	return &config, nil
 }

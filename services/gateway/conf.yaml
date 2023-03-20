@@ -1,5 +1,5 @@
-ServiceID: gate01
-ServiceName: wgateway
+ServiceID: "gate01"
+ServiceName: "wgateway"
 Listen: ":8000"
 MonitorPort: 8001
 Public: 8000

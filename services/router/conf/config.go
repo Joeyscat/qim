@@ -2,11 +2,10 @@ package conf
 
 import (
 	"encoding/json"
+	"log"
 
-	"github.com/joeyscat/qim/logger"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 type Config struct {
@@ -24,6 +23,7 @@ func Init(file string) (*Config, error) {
 	viper.SetConfigFile(file)
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("/etc/conf")
+	viper.SetConfigType("yaml")
 
 	var config Config
 
@@ -33,14 +33,12 @@ func Init(file string) (*Config, error) {
 	}
 
 	if err := viper.ReadInConfig(); err != nil {
-		logger.L.Warn(err.Error())
+		log.Fatalf("read config error: %s", err.Error())
 	} else {
 		if err := viper.Unmarshal(&config); err != nil {
 			return nil, err
 		}
 	}
-
-	logger.L.Debug("load config finished", zap.Any("config", config))
 
 	return &config, nil
 }

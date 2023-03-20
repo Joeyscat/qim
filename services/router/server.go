@@ -32,7 +32,7 @@ func NewServerStartCmd(ctx context.Context, version string) *cobra.Command {
 		},
 	}
 	cmd.PersistentFlags().StringVarP(&opts.config, "config", "c", "./router/conf.yaml", "config file")
-	cmd.PersistentFlags().StringVarP(&opts.config, "data", "d", "./router/data", "data path")
+	cmd.PersistentFlags().StringVarP(&opts.data, "data", "d", "./router/data", "data path")
 
 	return cmd
 }
@@ -49,6 +49,7 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 	if err != nil {
 		log.Fatal(err)
 	}
+	logger.L.Debug("load config finished", zap.String("config", config.String()))
 
 	mappings, err := conf.LoadMapping(path.Join(opts.data, "mapping.json"))
 	if err != nil {
@@ -67,7 +68,7 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 		return err
 	}
 
-	ns, err := etcd.NewNaming(strings.Split(config.EtcdEndpoints, ","), logger.L.With(zap.String("module", "naming")))
+	ns, err := etcd.NewNaming(strings.Split(config.EtcdEndpoints, ","), logger.L.With(zap.String("module", "router.naming")))
 	if err != nil {
 		return err
 	}

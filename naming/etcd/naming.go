@@ -74,7 +74,7 @@ func (e *etcdNaming) Register(service qim.ServiceRegistration) error {
 	// put kv
 	// keepalive
 	// TODO keep leaseID
-
+	e.lg.Info("register service", zap.String("service", service.String()))
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if _, ok := e.registry[service.ServiceID()]; ok {

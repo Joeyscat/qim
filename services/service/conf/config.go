@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -11,18 +12,16 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/joeyscat/qim"
-	"github.com/joeyscat/qim/logger"
 	"github.com/kataras/iris/v12/middleware/accesslog"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 type Server struct {
 }
 
 type Config struct {
-	ServerID      string
+	ServiceID     string
 	NodeID        int64
 	Listen        string `default:":8080"`
 	PublicAddress string
@@ -45,11 +44,12 @@ func Init(file string) (*Config, error) {
 	viper.SetConfigFile(file)
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("/etc/conf")
+	viper.SetConfigType("yaml")
 
 	var config Config
 
 	if err := viper.ReadInConfig(); err != nil {
-		logger.L.Warn(err.Error())
+		log.Fatalf("read config error: %s", err.Error())
 	} else {
 		if err := viper.Unmarshal(&config); err != nil {
 			return nil, err
@@ -61,9 +61,9 @@ func Init(file string) (*Config, error) {
 		return nil, err
 	}
 
-	if config.ServerID != "" {
+	if config.ServiceID == "" {
 		localIP := qim.GetLocalIP()
-		config.ServerID = fmt.Sprintf("royal_%s", strings.ReplaceAll(localIP, ".", ""))
+		config.ServiceID = fmt.Sprintf("royal_%s", strings.ReplaceAll(localIP, ".", ""))
 		arr := strings.Split(localIP, ".")
 		if len(arr) == 4 {
 			suffix, _ := strconv.Atoi(arr[3])
@@ -73,7 +73,6 @@ func Init(file string) (*Config, error) {
 	if config.PublicAddress == "" {
 		config.PublicAddress = qim.GetLocalIP()
 	}
-	logger.L.Debug("load config finished", zap.String("config", config.String()))
 
 	return &config, nil
 }

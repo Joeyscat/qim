@@ -38,8 +38,8 @@ func NewServerStartCmd(ctx context.Context, version string) *cobra.Command {
 		},
 	}
 	cmd.PersistentFlags().StringVarP(&opts.config, "config", "c", "./gateway/conf.yaml", "config file")
-	cmd.PersistentFlags().StringVarP(&opts.config, "route", "r", "./gateway/route.json", "route file")
-	cmd.PersistentFlags().StringVarP(&opts.config, "protocol", "p", "ws", "protocol of ws or tcp")
+	cmd.PersistentFlags().StringVarP(&opts.route, "route", "r", "./gateway/route.json", "route file")
+	cmd.PersistentFlags().StringVarP(&opts.protocol, "protocol", "p", "ws", "protocol of ws or tcp")
 
 	return cmd
 }
@@ -57,15 +57,17 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 		log.Fatal(err)
 	}
 
-	handler := serv.NewHander(config.ServerID, config.AppSecret, logger.L.With(zap.String("module", "gateway.handler")))
+	logger.L.Debug("load config finished", zap.String("config", config.String()))
+
+	handler := serv.NewHander(config.ServiceID, config.AppSecret, logger.L.With(zap.String("module", "gateway.handler")))
 
 	meta := make(map[string]string)
 	meta["domain"] = config.Domain
 
 	var srv qim.Server
 	service := &naming.DefaultService{
-		ID:       config.ServerID,
-		Name:     config.ServerName,
+		ID:       config.ServiceID,
+		Name:     config.ServiceName,
 		Address:  config.PublicAddress,
 		Port:     config.PublicPort,
 		Protocol: opts.protocol,
@@ -90,18 +92,18 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 	srv.SetMessageListener(handler)
 	srv.SetStateListener(handler)
 
-	err = container.Init(srv, wire.SNChat, wire.SNLogin)
+	err = container.Init(srv, logger.L.With(zap.String("module", "gateway.container")), wire.SNChat, wire.SNLogin)
 	if err != nil {
 		log.Fatal(err)
 	}
 	container.EnableMonitor(fmt.Sprintf(":%d", config.MonitorPort))
 
-	ns, err := etcd.NewNaming(strings.Split(config.EtcdEndpoints, ","), logger.L.With(zap.String("module", "naming")))
+	ns, err := etcd.NewNaming(strings.Split(config.EtcdEndpoints, ","), logger.L.With(zap.String("module", "gateway.naming")))
 	if err != nil {
 		return err
 	}
 	container.SetServiceNaming(ns)
-	container.SetDialer(serv.NewDialer(config.ServerID))
+	container.SetDialer(serv.NewDialer(config.ServiceID))
 	selector, err := serv.NewRouteSelector(opts.route, logger.L.With(zap.String("module", "gateway.selector")))
 	if err != nil {
 		return err

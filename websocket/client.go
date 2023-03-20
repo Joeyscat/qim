@@ -3,10 +3,8 @@ package websocket
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/url"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -36,11 +34,11 @@ type Client struct {
 	lg      *zap.Logger
 }
 
-func NewClient(id, name string, opts ClientOptions) qim.Client {
-	return NewClientWithProps(id, name, make(map[string]string), opts)
+func NewClient(id, name string, lg *zap.Logger, opts ClientOptions) qim.Client {
+	return NewClientWithProps(id, name, make(map[string]string), lg, opts)
 }
 
-func NewClientWithProps(id, name string, meta map[string]string, opts ClientOptions) qim.Client {
+func NewClientWithProps(id, name string, meta map[string]string, lg *zap.Logger, opts ClientOptions) qim.Client {
 	if opts.Writewait == 0 {
 		opts.Writewait = qim.DefaultWritewait
 	}
@@ -48,25 +46,12 @@ func NewClientWithProps(id, name string, meta map[string]string, opts ClientOpti
 		opts.Readwait = qim.DefaultReadwait
 	}
 
-	var err error
-	var logger *zap.Logger
-	if os.Getenv("DEBUG") == "true" {
-		logger, err = zap.NewDevelopment(zap.Fields(
-			zap.String("module", "websocket.client"), zap.String("id", id)))
-	} else {
-		logger, err = zap.NewProduction(zap.Fields(
-			zap.String("module", "websocket.client"), zap.String("id", id)))
-	}
-	if err != nil {
-		log.Fatalln(err)
-	}
-
 	cli := &Client{
 		id:      id,
 		name:    name,
 		options: opts,
 		meta:    meta,
-		lg:      logger,
+		lg:      lg,
 	}
 	return cli
 }

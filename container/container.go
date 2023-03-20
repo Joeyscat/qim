@@ -49,7 +49,7 @@ type Container struct {
 	dialer     qim.Dialer
 	deps       map[string]struct{}
 	monitor    sync.Once
-	lg         *zap.Logger // TODO
+	lg         *zap.Logger
 }
 
 // Default Container
@@ -57,7 +57,6 @@ var c = &Container{
 	state:   0,
 	seletor: &HashSelector{},
 	deps:    map[string]struct{}{},
-	lg:      zap.NewExample(),
 }
 
 func Default() *Container {
@@ -69,27 +68,18 @@ func Default() *Container {
 // For example, in the gateway, it depends on the login and chat services,
 // and it will cal the function like this:
 // _ = container.Init(srv, wire.SNChat, wire.SNLogin)
-func Init(srv qim.Server, deps ...string) error {
+func Init(srv qim.Server, lg *zap.Logger, deps ...string) error {
 	if !atomic.CompareAndSwapUint32(&c.state, stateUninitialized, stateInitialized) {
 		return errors.New("already initialized")
 	}
 	c.Srv = srv
+	c.lg = lg
 
 	for _, dep := range deps {
 		if _, ok := c.deps[dep]; ok {
 			continue
 		}
 		c.deps[dep] = struct{}{}
-	}
-	var err error
-	zapFields := zap.Fields(zap.String("module", "container"))
-	if os.Getenv("DEBUG") == "true" {
-		c.lg, err = zap.NewDevelopment(zapFields)
-	} else {
-		c.lg, err = zap.NewProduction(zapFields)
-	}
-	if err != nil {
-		return err
 	}
 
 	c.srvclients = make(map[string]ClientMap, len(deps))
@@ -171,7 +161,7 @@ func Push(server string, p *pkt.LogicPkt) error {
 
 // forward message to service
 func Forward(serviceName string, packet *pkt.LogicPkt) error {
-	if packet != nil {
+	if packet == nil {
 		return errors.New("packet is nil")
 	}
 	if packet.Command == "" {
@@ -203,7 +193,7 @@ func lookup(serviceName string, header *pkt.Header, selector Selector) (qim.Clie
 
 	srvs := clients.Services(KeyServiceState, StateAdult)
 	if len(srvs) == 0 {
-		return nil, fmt.Errorf("no services found for %s", serviceName)
+		return nil, fmt.Errorf("no services found: %s", serviceName)
 	}
 	id := selector.Lookup(header, srvs)
 	if cli, ok := clients.Get(id); ok {
@@ -270,7 +260,7 @@ func connectToService(serviceName string) error {
 	if err != nil {
 		return err
 	}
-	log.Info("find service", zap.Any("services", services))
+	log.Info("find service", zap.String("serviceName", serviceName), zap.Any("services", services))
 	for _, service := range services {
 		// change service state to adult
 		service.GetMeta()[KeyServiceState] = StateAdult
@@ -299,11 +289,13 @@ func buildClient(clients ClientMap, service qim.ServiceRegistration) (qim.Client
 		return nil, fmt.Errorf("unexpected service protocol: %s", service.GetProtocol())
 	}
 	// 3. create client and connect
-	cli := tcp.NewClientWithProps(id, name, meta, tcp.ClientOptions{
-		Heartbeat: qim.DefaultHeartbeat,
-		Readwait:  qim.DefaultReadwait,
-		Writewait: qim.DefaultWritewait,
-	})
+	cli := tcp.NewClientWithProps(id, name, meta,
+		c.lg.With(zap.String("module", "client.tcp")),
+		tcp.ClientOptions{
+			Heartbeat: qim.DefaultHeartbeat,
+			Readwait:  qim.DefaultReadwait,
+			Writewait: qim.DefaultWritewait,
+		})
 	if c.dialer == nil {
 		return nil, errors.New("dialer is nil")
 	}

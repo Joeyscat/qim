@@ -49,6 +49,7 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 	if err != nil {
 		log.Fatal(err)
 	}
+	logger.L.Debug("load config finished", zap.String("config", config.String()))
 
 	var (
 		baseDB    *gorm.DB
@@ -67,7 +68,7 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 	_ = baseDB.AutoMigrate(&database.MessageIndex{}, &database.MessageContent{})
 
 	if config.NodeID == 0 {
-		config.NodeID = int64(HashCode(config.ServerID))
+		config.NodeID = int64(HashCode(config.ServiceID))
 	}
 
 	idgen, err := database.NewIDGenerator(config.NodeID)
@@ -81,12 +82,12 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 	}
 
 	ns, err := etcd.NewNaming(strings.Split(config.EtcdEndpoints, ","),
-		logger.L.With(zap.String("module", "naming")))
+		logger.L.With(zap.String("module", "service.naming")))
 	if err != nil {
 		return err
 	}
 	_ = ns.Register(&naming.DefaultService{
-		ID:       config.ServerID,
+		ID:       config.ServiceID,
 		Name:     wire.SNService,
 		Address:  config.PublicAddress,
 		Port:     config.PublicPort,
@@ -96,7 +97,7 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 	})
 
 	defer func() {
-		_ = ns.Deregister(config.ServerID)
+		_ = ns.Deregister(config.ServiceID)
 	}()
 
 	serviceHandler := handler.ServiceHandler{

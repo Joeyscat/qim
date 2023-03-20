@@ -3,18 +3,17 @@ package conf
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/joeyscat/qim"
-	"github.com/joeyscat/qim/logger"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 type Config struct {
-	ServerID        string
-	ServerName      string `default:"wgateway"`
+	ServiceID       string
+	ServiceName     string `default:"wgateway"`
 	Listen          string `default:":8000"`
 	PublicAddress   string
 	PublicPort      uint16 `default:"8000"`
@@ -37,6 +36,7 @@ func Init(file string) (*Config, error) {
 	viper.SetConfigFile(file)
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("/etc/conf")
+	viper.SetConfigType("yaml")
 
 	var config Config
 
@@ -46,21 +46,20 @@ func Init(file string) (*Config, error) {
 	}
 
 	if err := viper.ReadInConfig(); err != nil {
-		logger.L.Warn(err.Error())
+		log.Fatalf("read config error: %s", err.Error())
 	} else {
 		if err := viper.Unmarshal(&config); err != nil {
 			return nil, err
 		}
 	}
 
-	if config.ServerID != "" {
+	if config.ServiceID == "" {
 		localIP := qim.GetLocalIP()
-		config.ServerID = fmt.Sprintf("gate_%s", strings.ReplaceAll(localIP, ".", ""))
+		config.ServiceID = fmt.Sprintf("gate_%s", strings.ReplaceAll(localIP, ".", ""))
 	}
 	if config.PublicAddress == "" {
 		config.PublicAddress = qim.GetLocalIP()
 	}
-	logger.L.Debug("load config finished", zap.Any("config", config))
 
 	return &config, nil
 }

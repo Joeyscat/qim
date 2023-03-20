@@ -5,6 +5,7 @@ PublicPort: 8005
 Tags:
   - "server"
 Zone: "zone_03"
+EtcdEndpoints: "localhost:2379"
 RedisAddrs: "localhost:6379"
 RoyalURL: "http://localhost:8080"
 MessageGPool: 5000

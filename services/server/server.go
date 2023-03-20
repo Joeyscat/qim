@@ -26,7 +26,7 @@ import (
 
 type ServerStartOptions struct {
 	config     string
-	serverName string
+	serviceName string
 }
 
 func NewServerStartCmd(ctx context.Context, version string) *cobra.Command {
@@ -40,7 +40,7 @@ func NewServerStartCmd(ctx context.Context, version string) *cobra.Command {
 		},
 	}
 	cmd.PersistentFlags().StringVarP(&opts.config, "config", "c", "./server/conf.yaml", "config file")
-	cmd.PersistentFlags().StringVarP(&opts.config, "serviceName", "s", "chat", "define a service name, option is login or chat")
+	cmd.PersistentFlags().StringVarP(&opts.serviceName, "serviceName", "s", "chat", "define a service name, option is login or chat")
 
 	return cmd
 }
@@ -57,6 +57,7 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 	if err != nil {
 		log.Fatal(err)
 	}
+	logger.L.Debug("load config finished", zap.String("config", config.String()))
 
 	var groupService service.Group
 	var messageService service.Message
@@ -67,6 +68,7 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 			logger.L.With(zap.String("module", "message")))
 	} else {
 		// TODO
+		logger.L.Fatal("royal url is empty")
 	}
 
 	r := qim.NewRouter()
@@ -104,8 +106,8 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 	meta["zone"] = config.Zone
 
 	service := &naming.DefaultService{
-		ID:       config.ServerID,
-		Name:     opts.serverName,
+		ID:       config.ServiceID,
+		Name:     opts.serviceName,
 		Address:  config.PublicAddress,
 		Port:     config.PublicPort,
 		Protocol: string(wire.ProtocolTCP),
@@ -123,14 +125,14 @@ func RunServerStart(ctx context.Context, opts *ServerStartOptions, version strin
 	srv.SetMessageListener(servhandler)
 	srv.SetStateListener(servhandler)
 
-	err = container.Init(srv)
+	err = container.Init(srv, logger.L.With(zap.String("module", "server.container")))
 	if err != nil {
 		log.Fatal(err)
 	}
 	container.EnableMonitor(fmt.Sprintf(":%d", config.MonitorPort))
 
 	ns, err := etcd.NewNaming(strings.Split(config.EtcdEndpoints, ","),
-		logger.L.With(zap.String("module", "naming")))
+		logger.L.With(zap.String("module", "server.naming")))
 	if err != nil {
 		return err
 	}

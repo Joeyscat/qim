@@ -24,10 +24,10 @@ func (c *ClientDemo) Start(userID, prorocol, addr string) {
 
 	// 1. 初始化客户端
 	if prorocol == "ws" {
-		cli = websocket.NewClient(userID, "client", websocket.ClientOptions{})
+		cli = websocket.NewClient(userID, "client", c.lg, websocket.ClientOptions{})
 		cli.SetDialer(&WebSocketDialer{})
 	} else if prorocol == "tcp" {
-		cli = tcp.NewClient(userID, "client", tcp.ClientOptions{})
+		cli = tcp.NewClient(userID, "client", c.lg, tcp.ClientOptions{})
 		cli.SetDialer(&TCPDialer{lg: c.lg.With(zap.String("module", "tcp.dialer"))})
 	}
 
